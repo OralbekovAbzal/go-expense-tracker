@@ -1,11 +1,16 @@
 package middleware
 
 import (
+	"context"
 	"fmt"
 	"github.com/golang-jwt/jwt/v5"
 	"net/http"
 	"strings"
 )
+
+var User_idKey = contextKey("user_id")
+
+type contextKey string
 
 func AuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -29,6 +34,16 @@ func AuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
 			return
 		}
 
-		next(w, r)
+		claims := token.Claims.(jwt.MapClaims)
+		userIDFloat, ok := claims["user_id"].(float64)
+		if !ok {
+			http.Error(w, "Invalid user ID", http.StatusUnauthorized)
+			return
+		}
+
+		userID := int(userIDFloat)
+
+		ctx := context.WithValue(r.Context(), User_idKey, userID)
+		next(w, r.WithContext(ctx))
 	}
 }

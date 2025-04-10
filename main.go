@@ -10,10 +10,10 @@ import (
 
 func main() {
 	http.HandleFunc("/hello", expenses.HelloHandler)
-	http.HandleFunc("/add", expenses.AddExpenseHandler)
-	http.HandleFunc("/all", expenses.ExpensesHandler)
+	http.HandleFunc("/add", middleware.AuthMiddleware(expenses.AddExpenseHandler))
+	http.HandleFunc("/all", middleware.AuthMiddleware(expenses.AllExpensesHandler))
 
-	http.HandleFunc("/registr", authorization.RegisterHandler)
+	http.HandleFunc("/register", authorization.RegisterHandler)
 	http.HandleFunc("/login", authorization.LoginHandler)
 	http.HandleFunc("/me", middleware.AuthMiddleware(expenses.HelloHandler))
 

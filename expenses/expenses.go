@@ -1,8 +1,12 @@
 package expenses
 
 import (
+	db2 "API_service/db"
+	"API_service/middleware"
+	_ "database/sql"
 	"encoding/json"
 	"fmt"
+	_ "github.com/lib/pq"
 	"net/http"
 )
 
@@ -10,6 +14,7 @@ type Expense struct {
 	ID     int     `json:"id"`
 	Title  string  `json:"title"`
 	Amount float64 `json:"amount"`
+	UserId int     `json:"user_id"`
 }
 
 var expenses []Expense
@@ -24,6 +29,8 @@ func HelloHandler(w http.ResponseWriter, r *http.Request) {
 
 func AddExpenseHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == http.MethodPost {
+		userID := r.Context().Value(middleware.User_idKey).(int)
+
 		var newExpense Expense
 
 		err := json.NewDecoder(r.Body).Decode(&newExpense)
@@ -31,13 +38,24 @@ func AddExpenseHandler(w http.ResponseWriter, r *http.Request) {
 			fmt.Println("Invalid data")
 			return
 		}
-		newExpense.ID = nextID
-		nextID++
-		expenses = append(expenses, newExpense)
+
+		newExpense.UserId = userID
+
+		db := db2.ConnectDataBase()
+		query := `Insert into expenses (title,amount,user_id) values ($1,$2,$3)`
+
+		_, err = db.Exec(query, newExpense.Title, newExpense.Amount, newExpense.UserId)
+		if err != nil {
+			http.Error(w, "Error creating new expense", http.StatusInternalServerError)
+			fmt.Println("DB error:", err)
+			return
+		}
+
+		json.NewEncoder(w).Encode(map[string]string{"message": "Expense added"})
 	}
 }
 
-func ExpensesHandler(w http.ResponseWriter, r *http.Request) {
+func AllExpensesHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(expenses)
 }
