@@ -56,6 +56,39 @@ func AddExpenseHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func AllExpensesHandler(w http.ResponseWriter, r *http.Request) {
+	userID := r.Context().Value(middleware.User_idKey).(int)
+
+	db := db2.ConnectDataBase()
+	query := `select * from expenses where user_id=$1`
+
+	rows, err := db.Query(query, userID)
+	if err != nil {
+		http.Error(w, "Error searching", http.StatusInternalServerError)
+		return
+	}
+	defer rows.Close()
+
+	var expenses []Expense
+
+	for rows.Next() {
+		var expense Expense
+
+		err = rows.Scan(&expense.ID, &expense.Title, &expense.Amount, &expense.UserId)
+		if err != nil {
+			http.Error(w, "Error scanning rows", http.StatusInternalServerError)
+			fmt.Println("Scan error:", err)
+			return
+		}
+
+		expenses = append(expenses, expense)
+	}
+
+	if err := rows.Err(); err != nil {
+		http.Error(w, "Row iteration error", http.StatusInternalServerError)
+		fmt.Println("Iteration error", err)
+		return
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(expenses)
 }
