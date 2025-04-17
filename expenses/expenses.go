@@ -6,8 +6,10 @@ import (
 	_ "database/sql"
 	"encoding/json"
 	"fmt"
+	"github.com/gorilla/mux"
 	_ "github.com/lib/pq"
 	"net/http"
+	"strconv"
 )
 
 type Expense struct {
@@ -16,9 +18,6 @@ type Expense struct {
 	Amount float64 `json:"amount"`
 	UserId int     `json:"user_id"`
 }
-
-var expenses []Expense
-var nextID = 1
 
 func HelloHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
@@ -91,4 +90,30 @@ func AllExpensesHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(expenses)
+}
+
+func deleteExpense(w http.ResponseWriter, r *http.Request) {
+	if http.MethodDelete == r.Method {
+		vars := mux.Vars(r)
+		idStr := vars["id"]
+		id, err := strconv.Atoi(idStr)
+		if err != nil {
+			http.Error(w, "Invalid expense id", http.StatusBadRequest)
+			return
+		}
+
+		query := `Delete from expenses where id=$1`
+
+		db := db2.ConnectDataBase()
+
+		_, err = db.Exec(query, id)
+		if err != nil {
+			http.Error(w, "Error quering database", http.StatusInternalServerError)
+			fmt.Println(err)
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprintf(w, "Expense deleted")
+	}
 }
