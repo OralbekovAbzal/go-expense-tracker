@@ -94,6 +94,8 @@ func AllExpensesHandler(w http.ResponseWriter, r *http.Request) {
 
 func deleteExpense(w http.ResponseWriter, r *http.Request) {
 	if http.MethodDelete == r.Method {
+		userId := r.Context().Value(middleware.User_idKey).(int)
+
 		vars := mux.Vars(r)
 		idStr := vars["id"]
 		id, err := strconv.Atoi(idStr)
@@ -102,11 +104,11 @@ func deleteExpense(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		query := `Delete from expenses where id=$1`
+		query := `Delete from expenses where id=$1 and user_id=$2`
 
 		db := db2.ConnectDataBase()
 
-		_, err = db.Exec(query, id)
+		_, err = db.Exec(query, id, userId)
 		if err != nil {
 			http.Error(w, "Error quering database", http.StatusInternalServerError)
 			fmt.Println(err)
