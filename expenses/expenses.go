@@ -92,7 +92,7 @@ func AllExpensesHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(expenses)
 }
 
-func deleteExpense(w http.ResponseWriter, r *http.Request) {
+func DeleteExpense(w http.ResponseWriter, r *http.Request) {
 	if http.MethodDelete == r.Method {
 		userId := r.Context().Value(middleware.User_idKey).(int)
 
@@ -117,5 +117,40 @@ func deleteExpense(w http.ResponseWriter, r *http.Request) {
 
 		w.WriteHeader(http.StatusOK)
 		fmt.Fprintf(w, "Expense deleted")
+	}
+}
+
+func UpdateExpense(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodPut {
+		userId := r.Context().Value(middleware.User_idKey).(int)
+
+		vars := mux.Vars(r)
+		idStr := vars["id"]
+
+		id, err := strconv.Atoi(idStr)
+		if err != nil {
+			http.Error(w, "Invalid expense id", http.StatusBadRequest)
+			return
+		}
+
+		var updated Expense
+		err = json.NewDecoder(r.Body).Decode(&updated)
+		if err != nil {
+			http.Error(w, "Invalid body", http.StatusBadRequest)
+			return
+		}
+
+		db := db2.ConnectDataBase()
+		query := `UPDATE expenses SET title=$1, amount=$2 WHERE id=$3 AND user_id=$4`
+
+		_, err = db.Exec(query, updated.Title, updated.Amount, id, userId)
+		if err != nil {
+			http.Error(w, "Error updating expenses", http.StatusInternalServerError)
+			fmt.Println("Database error:", err)
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(map[string]string{"message": "Expense updated"})
 	}
 }

@@ -9,9 +9,10 @@ import (
 )
 
 func main() {
-	http.HandleFunc("/hello", expenses.HelloHandler)
-	http.HandleFunc("/add", middleware.AuthMiddleware(expenses.AddExpenseHandler))
-	http.HandleFunc("/all", middleware.AuthMiddleware(expenses.AllExpensesHandler))
+	http.HandleFunc("/expenses/add", middleware.AuthMiddleware(expenses.AddExpenseHandler))
+	http.HandleFunc("/expenses", middleware.AuthMiddleware(expenses.AllExpensesHandler))
+	http.HandleFunc("/expenses/{id}", middleware.AuthMiddleware(expenses.DeleteExpense))
+	http.HandleFunc("/expenses/{id}", middleware.AuthMiddleware(expenses.UpdateExpense))
 
 	http.HandleFunc("/register", authorization.RegisterHandler)
 	http.HandleFunc("/login", authorization.LoginHandler)
